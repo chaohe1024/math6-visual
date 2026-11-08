@@ -419,16 +419,28 @@ function bindApplication() {
   bindRange("waterVolume",update," cm³");bindRange("increaseN",update);update();
 }
 
+const paintStops = [
+  [0, [244, 207, 69]], [.1, [196, 207, 77]], [.2, [131, 189, 96]],
+  [.25, [85, 168, 106]], [.33, [53, 151, 123]], [.5, [40, 127, 145]],
+  [.75, [36, 105, 165]], [1, [36, 85, 164]]
+];
+function mixPaint(b, y) {
+  const t = b / (b + y);
+  const right = paintStops.findIndex(stop => stop[0] >= t);
+  if (right <= 0) return `rgb(${paintStops[Math.max(0, right)][1].join(",")})`;
+  const [t0, c0] = paintStops[right - 1], [t1, c1] = paintStops[right];
+  const amount = (t - t0) / (t1 - t0);
+  const rgb = c0.map((value, i) => Math.round(value + (c1[i] - value) * amount));
+  return `rgb(${rgb.join(",")})`;
+}
 function bindRatio() {
   const update=()=>{
     const b=+$("#blueParts").value,y=+$("#yellowParts").value,d=gcd(b,y),sb=b/d,sy=y/d,match=b*4===y;
-    const blue=[70,137,187],yellow=[237,204,82],total=b+y;
-    const rgb=blue.map((v,i)=>Math.round((v*b+yellow[i]*y)/total));
-    const color=`rgb(${rgb.join(",")})`;
+    const color=mixPaint(b,y),targetColor=mixPaint(1,4);
     const cup=(name,ratio,fill)=>`<div class="paint-cup"><div class="cup"><div class="paint-liquid" style="background:${fill}"></div></div><strong>${name}</strong><small>${ratio}</small></div>`;
-    $("#paintLab").innerHTML=`${cup("目标配色","蓝 ∶ 黄 = 1∶4","#adc763")}<div class="mix-result ${match?"match":""}"><span>${match?"✓":"≠"}</span><small>${match?"比值相同":"继续调配"}</small></div>${cup("我的配色",`${b}∶${y}`,color)}`;
+    $("#paintLab").innerHTML=`${cup("目标配色","蓝 ∶ 黄 = 1∶4",targetColor)}<div class="mix-result ${match?"match":""}"><span>${match?"✓":"≠"}</span><small>${match?"颜色相同":"继续调配"}</small></div>${cup("我的配色",`${b}∶${y}`,color)}`;
     $("#ratioFormula").innerHTML=`<span>${b}∶${y} =（${b}÷${d}）∶（${y}÷${d}）= <span class="highlight">${sb}∶${sy}</span></span>`;
-    $("#ratioCaption").innerHTML=match?`我的配色与目标的比值相同，<strong>能组成比例：${b}∶${y}=1∶4</strong>。`:`目标要求蓝∶黄=1∶4；当前比值是 <strong>${fmt(b/y)}</strong>，而目标比值是 0.25。`;
+    $("#ratioCaption").innerHTML=match?`我的配色与目标的比值相同，<strong>颜色相同，能组成比例：${b}∶${y}=1∶4</strong>。`:`目标要求蓝∶黄=1∶4；当前比值是 <strong>${fmt(b/y)}</strong>，而目标比值是 0.25。蓝色占比越大，颜色越偏蓝。`;
   };
   bindRange("blueParts",update," 份");bindRange("yellowParts",update," 份");update();
 }
